@@ -38,9 +38,20 @@ const Products = () => {
   // Create product mutation
   const createMutation = useMutation({
     mutationFn: (productData: any) => productsAPI.create(productData),
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success("Product added successfully!");
+      
+      // Check if auto-regeneration is happening
+      if (response.data?.autoRegenerate) {
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['routines'] });
+          toast.info("✨ Your routines are being updated with the new product!", {
+            duration: 5000
+          });
+        }, 2000);
+      }
+      
       setDialogOpen(false);
       setNewProduct({ name: "", brand: "", type: "", usage: "both", compatibility: "good" });
     },
@@ -52,9 +63,19 @@ const Products = () => {
   // Delete product mutation
   const deleteMutation = useMutation({
     mutationFn: (id: string) => productsAPI.delete(id),
-    onSuccess: () => {
+    onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       toast.success("Product deleted successfully!");
+      
+      // Check if auto-regeneration is happening
+      if (response.data?.autoRegenerate) {
+        setTimeout(() => {
+          queryClient.invalidateQueries({ queryKey: ['routines'] });
+          toast.info("✨ Your routines are being updated automatically!", {
+            duration: 5000
+          });
+        }, 2000);
+      }
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.message || "Failed to delete product");

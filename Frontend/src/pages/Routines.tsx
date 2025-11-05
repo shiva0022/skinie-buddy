@@ -16,12 +16,14 @@ const Routines = () => {
   const [activeTab, setActiveTab] = useState("morning");
 
   // Fetch routines from API
-  const { data: routinesData, isLoading } = useQuery({
+  const { data: routinesData, isLoading, isFetching } = useQuery({
     queryKey: ['routines'],
     queryFn: async () => {
       const response = await routinesAPI.getAll();
       return response.data?.routines || [];
-    }
+    },
+    refetchInterval: 5000, // Auto-refetch every 5 seconds to catch auto-regeneration
+    refetchIntervalInBackground: false
   });
 
   // Generate AI routine mutation
@@ -192,6 +194,12 @@ const Routines = () => {
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-foreground mb-2">Your Routines</h1>
           <p className="text-muted-foreground">AI-generated personalized skincare steps</p>
+          {isFetching && !isLoading && (
+            <p className="text-xs text-primary mt-1 flex items-center gap-1">
+              <RefreshCw className="w-3 h-3 animate-spin" />
+              Checking for updates...
+            </p>
+          )}
         </div>
 
         {/* Compatibility Notice */}
@@ -253,10 +261,12 @@ const Routines = () => {
                 </Button>
               </Card>
             ) : (
-              morningRoutine.steps.map((step: any, index: number) => (
+              morningRoutine.steps
+                .filter((step: any) => step.product) // Filter out steps with deleted products
+                .map((step: any, index: number) => (
                 <RoutineStep
                   key={index}
-                  stepNumber={step.stepNumber}
+                  stepNumber={index + 1}
                   product={typeof step.product === 'object' ? step.product.name : step.product}
                   brand={typeof step.product === 'object' ? step.product.brand : ''}
                   instruction={step.instruction}
@@ -284,10 +294,12 @@ const Routines = () => {
                 </Button>
               </Card>
             ) : (
-              nightRoutine.steps.map((step: any, index: number) => (
+              nightRoutine.steps
+                .filter((step: any) => step.product) // Filter out steps with deleted products
+                .map((step: any, index: number) => (
                 <RoutineStep
                   key={index}
-                  stepNumber={step.stepNumber}
+                  stepNumber={index + 1}
                   product={typeof step.product === 'object' ? step.product.name : step.product}
                   brand={typeof step.product === 'object' ? step.product.brand : ''}
                   instruction={step.instruction}
