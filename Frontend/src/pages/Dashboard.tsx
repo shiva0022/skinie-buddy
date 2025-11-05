@@ -6,22 +6,62 @@ import FloatingChatWidget from "@/components/FloatingChatWidget";
 import TopNav from "@/components/TopNav";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { streaksAPI } from "@/services/api";
 
 const Dashboard = () => {
   const { currentStreak, longestStreak } = useAuth();
   const queryClient = useQueryClient();
-  const [weeklyCompletion, setWeeklyCompletion] = useState<boolean[]>([false, false, false, false, false, false, false]);
   
-  const days = ['Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue', 'Wed'];
+  // Fetch full streak data from backend
+  const { data: streakData } = useQuery({
+    queryKey: ['streak-details'],
+    queryFn: async () => {
+      const response = await streaksAPI.get();
+      return response.data?.streak;
+    }
+  });
+
+  // Generate last 7 days with proper day names
+  const getLast7Days = () => {
+    const days = [];
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+      
+      days.push({
+        date: date,
+        dayName: dayNames[date.getDay()],
+        dateString: date.toDateString()
+      });
+    }
+    
+    return days;
+  };
+
+  const [last7Days] = useState(getLast7Days());
+  
+  // Check if a day is completed based on backend loginHistory
+  const isDayCompleted = (dateString: string) => {
+    if (!streakData?.loginHistory) return false;
+    
+    return streakData.loginHistory.some((entry: any) => {
+      const entryDate = new Date(entry.date);
+      entryDate.setHours(0, 0, 0, 0);
+      return entryDate.toDateString() === dateString && entry.routineCompleted;
+    });
+  };
 
   // Update streak mutation
   const updateStreakMutation = useMutation({
     mutationFn: () => streaksAPI.update(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['auth'] });
+      queryClient.invalidateQueries({ queryKey: ['streak-details'] });
       toast.success("Routine completed! Keep up the great work!");
     },
     onError: (error: any) => {
@@ -30,11 +70,12 @@ const Dashboard = () => {
   });
   
   const handleCompleteRoutine = () => {
-    const today = new Date().getDay();
-    const dayIndex = today === 0 ? 6 : today - 1;
-    const newWeekly = [...weeklyCompletion];
-    newWeekly[dayIndex] = true;
-    setWeeklyCompletion(newWeekly);
+    // Check if already completed today
+    const today = new Date().toDateString();
+    if (isDayCompleted(today)) {
+      toast.info("You've already completed your routine today!");
+      return;
+    }
     
     updateStreakMutation.mutate();
   };
@@ -87,20 +128,30 @@ const Dashboard = () => {
               <p className="text-sm font-medium text-foreground">Last 7 Days</p>
             </div>
             <div className="flex gap-2">
-              {days.map((day, index) => (
-                <div key={day} className="flex-1 flex flex-col items-center gap-2">
-                  <div className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all ${
-                    weeklyCompletion[index] 
-                      ? 'bg-success text-success-foreground' 
-                      : 'bg-muted/30 border-2 border-dashed border-muted-foreground/20'
-                  }`}>
-                    {weeklyCompletion[index] ? (
-                      <Flame className="w-5 h-5" />
-                    ) : null}
+              {last7Days.map((day, index) => {
+                const isCompleted = isDayCompleted(day.dateString);
+                const isToday = day.dateString === new Date().toDateString();
+                
+                return (
+                  <div key={index} className="flex-1 flex flex-col items-center gap-2">
+                    <div className={`w-full aspect-square rounded-xl flex items-center justify-center transition-all relative ${
+                      isCompleted
+                        ? 'bg-success text-success-foreground' 
+                        : 'bg-muted/30 border-2 border-dashed border-muted-foreground/20'
+                    }`}>
+                      {isCompleted ? (
+                        <Flame className="w-5 h-5" />
+                      ) : null}
+                      {isToday && !isCompleted && (
+                        <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-pulse" />
+                      )}
+                    </div>
+                    <span className={`text-xs ${isToday ? 'text-primary font-semibold' : 'text-muted-foreground'}`}>
+                      {day.dayName}
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground">{day}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
