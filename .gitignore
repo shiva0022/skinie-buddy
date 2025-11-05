@@ -1,0 +1,73 @@
+# === Node & Dependencies ===
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+.pnpm-store/
+
+# === Environment Files ===
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# === Logs ===
+logs/
+*.log
+log.txt
+*.out
+*.pid
+*.seed
+*.gz
+
+# === Build Outputs ===
+dist/
+build/
+.cache/
+.temp/
+.tmp/
+.vite/
+coverage/
+
+# === OS / Editor ===
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+
+# === Frontend (Vite/React) ===
+*.tsbuildinfo
+vite.config.ts.timestamp*
+vite.config.js.timestamp*
+*.local
+*.env.*
+public/hot
+public/static/
+src/**/*.d.ts
+
+# === Backend (Express) ===
+uploads/
+tmp/
+bin/
+*.pem
+*.key
+
+# === Test / Coverage ===
+coverage/
+.nyc_output/
+jest-cache/
+jest-html-reporters-*
+test-results.xml
+
+# === Misc ===
+*.iml
+*.sublime-workspace
+*.sublime-project
+*.orig
